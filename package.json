@@ -1,0 +1,9 @@
+{
+  "name": "snd-strat-board",
+  "version": "1.0.0",
+  "description": "MW3 6v6 Search & Destroy strat board — place players, view cones, sketch, all 9 maps. Mobile friendly.",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SnD Strat Board</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1d242e; --line:#2b333f;
+    --txt:#e8ecf2; --muted:#8b95a4; --accent:#d23c1e;
+    --entry:#d23c1e; --anchor:#1f5fb0; --flex:#7a4ec2; --star:#c28a00; --plant:#1c7c3a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--txt);}
+  body{display:flex;flex-direction:column;overflow:hidden;}
+  header{display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--panel);border-bottom:2px solid var(--accent);flex:0 0 auto;flex-wrap:wrap;}
+  header h1{font-size:16px;margin:0;letter-spacing:.5px;}
+  header h1 b{color:var(--accent);}
+  .maps{display:flex;gap:4px;flex-wrap:wrap;}
+  .maptab{padding:4px 10px;font-size:12px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;color:var(--muted);cursor:pointer;}
+  .maptab.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:bold;}
+  .maptab.has::after{content:" ●";color:#1c7c3a;font-size:9px;}
+  .grow{flex:1;}
+  .btn{padding:5px 11px;font-size:12px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;color:var(--txt);cursor:pointer;}
+  .btn:hover{background:#2a323d;}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:bold;}
+  .btn.on{background:#1c7c3a;border-color:#1c7c3a;color:#fff;}
+  main{flex:1;display:flex;min-height:0;}
+  aside{width:248px;flex:0 0 248px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;}
+  .sec{padding:10px 12px;border-bottom:1px solid var(--line);}
+  .sec h3{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);}
+  .roster .pl{display:flex;align-items:center;gap:8px;padding:5px 7px;margin:3px 0;border-radius:5px;background:var(--panel2);cursor:grab;border:1px solid var(--line);}
+  .roster .pl:active{cursor:grabbing;}
+  .dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;}
+  .roster .pl span{font-size:13px;font-weight:600;}
+  .roster .pl small{color:var(--muted);margin-left:auto;font-size:10px;}
+  .addrow{display:flex;gap:5px;margin-top:8px;}
+  .addrow input,.addrow select{font-size:12px;padding:4px 6px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;color:var(--txt);}
+  .addrow input{flex:1;min-width:0;}
+  .hint{font-size:10.5px;color:var(--muted);line-height:1.5;}
+  .legend small{display:flex;align-items:center;gap:6px;font-size:11px;margin:3px 0;color:var(--muted);}
+  .stagewrap{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .toolbar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--panel);border-bottom:1px solid var(--line);font-size:12px;flex-wrap:wrap;}
+  .toolbar label{color:var(--muted);}
+  .swatch{width:18px;height:18px;border-radius:4px;border:2px solid #fff3;cursor:pointer;}
+  .swatch.sel{border-color:#fff;box-shadow:0 0 0 2px #000;}
+  .stage{flex:1;position:relative;overflow:auto;display:flex;align-items:center;justify-content:center;background:
+     repeating-conic-gradient(#11151b 0% 25%, #0e1116 0% 50%) 50%/26px 26px;}
+  #board{position:relative;background:#0b0e12;box-shadow:0 0 0 1px var(--line);}
+  #mapimg{display:block;max-width:100%;user-select:none;-webkit-user-drag:none;}
+  #sketch{position:absolute;left:0;top:0;z-index:3;}            /* canvas overlay */
+  .markerLayer{position:absolute;left:0;top:0;width:100%;height:100%;z-index:5;pointer-events:none;}
+  .markerLayer .marker{pointer-events:auto;}
+  .nomap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:12px;text-align:center;padding:30px;z-index:2;}
+  .marker{position:absolute;transform:translate(-50%,-50%);cursor:move;}
+  .pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;
+       border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.6);}
+  .plabel{position:absolute;left:50%;top:calc(50% + 17px);transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;background:rgba(0,0,0,.72);padding:1px 6px;border-radius:3px;color:#fff;}
+  .lvl{position:absolute;left:calc(50% + 11px);top:calc(50% - 18px);font-size:9px;font-weight:bold;background:#000;border:1px solid #fff;border-radius:3px;padding:0 3px;}
+  .handle{position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid #111;cursor:grab;}
+  .marker.sel .pin{outline:2px dashed #fff;outline-offset:2px;}
+  .insp{padding:10px 12px;} .insp.empty{color:var(--muted);font-size:12px;}
+  .row{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:12px;}
+  .row label{flex:0 0 78px;color:var(--muted);}
+  .row input[type=range]{flex:1;}
+  .row .val{flex:0 0 38px;text-align:right;color:var(--txt);font-variant-numeric:tabular-nums;}
+  .minibtns{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;}
+  .minibtns .btn{padding:4px 8px;font-size:11px;}
+  #sketch{touch-action:none;}
+  .marker,.handle,.pin,.plabel{touch-action:none;}
+  .menuToggle{display:none;padding:7px 11px;}
+  .sheetBackdrop{display:none;}
+  .sheetGrip{display:none;}
+
+  @media print{
+    header,aside,.toolbar,.handle,.menuToggle{display:none!important;}
+    body,main,.stagewrap,.stage{display:block;height:auto;overflow:visible;background:#fff;}
+    .stage{background:#fff;} #board{box-shadow:none;margin:0 auto;}
+    .plabel{color:#000;background:#fff;border:1px solid #000;}
+  }
+
+  @media (max-width:760px){
+    header{gap:8px;padding:7px 10px;}
+    header h1{font-size:14px;}
+    .maps{order:3;width:100%;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:2px;}
+    .maptab{flex:0 0 auto;padding:7px 13px;font-size:13px;}
+    .btn{padding:9px 12px;font-size:13px;}
+    .menuToggle{display:inline-flex;align-items:center;justify-content:center;}
+    main{flex-direction:column;}
+    aside{position:fixed;left:0;bottom:0;top:auto;width:100%;max-height:74vh;flex:none;
+          transform:translateY(100%);transition:transform .25s ease;z-index:40;border-right:none;border-top:2px solid var(--accent);
+          border-radius:14px 14px 0 0;overflow-y:auto;}
+    body.sheet aside{transform:translateY(0);}
+    body.sheet .sheetBackdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:35;}
+    .sheetGrip{display:block;width:42px;height:5px;border-radius:3px;background:#445;margin:8px auto 2px;}
+    .toolbar{gap:6px;padding:7px 9px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;}
+    .toolbar .btn{padding:9px 11px;}
+    .toolbar label{display:none;}
+    .swatch{width:26px;height:26px;}
+    .handle{width:22px;height:22px;}
+    .pin{width:32px;height:32px;font-size:11px;}
+    .plabel{font-size:13px;padding:2px 7px;}
+    .roster .pl{padding:11px 9px;}
+    .stage{align-items:flex-start;}
+    .roster .pl.armed{outline:2px solid var(--accent);outline-offset:1px;}
+  }
+</style>
+</head>
+<body>
+<script src="map_images.js"></script>
+<header>
+  <button class="btn menuToggle" id="menuToggle">☰ Squad</button>
+  <h1><b>SnD</b> BOARD</h1>
+  <div class="maps" id="maptabs"></div>
+  <div class="grow"></div>
+  <button class="btn" id="uploadBtn">Upload map</button>
+  <input type="file" id="fileInput" accept="image/*" style="display:none">
+  <button class="btn" id="saveBtn">Save</button>
+  <button class="btn" id="loadBtn">Load</button>
+  <button class="btn primary" id="printBtn">Print / PDF</button>
+  <input type="file" id="loadInput" accept="application/json" style="display:none">
+</header>
+
+<div class="sheetBackdrop" id="sheetBackdrop"></div>
+<main>
+  <aside>
+    <div class="sheetGrip"></div>
+    <div class="sec roster">
+      <h3>Roster — tap a player then tap the map (or drag)</h3>
+      <div id="rosterList"></div>
+      <div class="addrow">
+        <input id="newName" placeholder="New player name" maxlength="14">
+        <select id="newRole">
+          <option value="entry">Entry</option><option value="anchor">Anchor</option>
+          <option value="flex">Flex</option><option value="star">Star</option><option value="plant">Plant</option>
+        </select>
+      </div>
+      <div class="minibtns"><button class="btn" id="addPlayer">+ Add player</button></div>
+    </div>
+
+    <div class="sec">
+      <h3>Selected player</h3>
+      <div class="insp empty" id="inspector">Click a placed marker to edit its angle, view width, range, and level.</div>
+    </div>
+
+    <div class="sec legend">
+      <h3>Role colors</h3>
+      <small><span class="dot" style="background:var(--entry)"></span> Entry</small>
+      <small><span class="dot" style="background:var(--anchor)"></span> Anchor</small>
+      <small><span class="dot" style="background:var(--flex)"></span> Flex</small>
+      <small><span class="dot" style="background:var(--star)"></span> Star</small>
+      <small><span class="dot" style="background:var(--plant)"></span> Plant</small>
+    </div>
+
+    <div class="sec">
+      <h3>How to use</h3>
+      <div class="hint">
+        1. Pick a map tab (maps load automatically; a green ● means an image is loaded).<br>
+        2. <b>Drag</b> a player from the roster onto the map. Drag the marker to move; grab the <b>white handle</b> to rotate his facing.<br>
+        3. Sliders set <b>view width</b> &amp; <b>range</b>; tag <b>Up/Down</b> for verticality.<br>
+        4. Toggle <b>Draw</b> (toolbar) to sketch arrows/notes in any color; <b>Erase</b>, <b>Undo</b>, <b>Clear</b>.<br>
+        5. <b>Save</b> stores all maps, players &amp; sketches; <b>Print</b> exports the current map.
+      </div>
+    </div>
+  </aside>
+
+  <div class="stagewrap">
+    <div class="toolbar">
+      <label>Map:</label> <b id="curMapName">—</b>
+      <span style="width:14px"></span>
+      <button class="btn" id="drawToggle">✏ Draw</button>
+      <button class="btn" id="eraseToggle">⌫ Erase</button>
+      <span id="swatches" style="display:flex;gap:5px;"></span>
+      <label>Size</label><input type="range" id="penSize" min="2" max="22" value="5" style="width:70px">
+      <button class="btn" id="undoBtn">↶ Undo</button>
+      <button class="btn" id="clearDraw">Clear ink</button>
+      <span class="grow"></span>
+      <label>Cone opacity</label><input type="range" id="coneOpacity" min="10" max="80" value="38" style="width:80px">
+      <button class="btn" id="clearMarkers">Clear players</button>
+    </div>
+    <div class="stage" id="stage">
+      <div id="board">
+        <img id="mapimg" style="display:none">
+        <canvas id="sketch"></canvas>
+        <div class="markerLayer" id="markerLayer"></div>
+        <div class="nomap" id="nomap">
+          <div style="font-size:42px">🗺️</div>
+          <div><b id="nomapName">Map</b></div>
+          <div class="hint">No image loaded for this map yet. Click <b>Upload map</b> (top right) to add one.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const ROLES={entry:"#d23c1e",anchor:"#1f5fb0",flex:"#7a4ec2",star:"#c28a00",plant:"#1c7c3a"};
+const MAPS=["Karachi","Skidrow","Sub Base","Highrise","Invasion","Shoot House","Mercado Las Almas","Rio","Farm 18"];
+const PEN_COLORS=["#ffffff","#d23c1e","#1f5fb0","#7a4ec2","#c28a00","#1c7c3a","#ffd400"];
+
+// Pre-loaded map images go here as { "Map Name": "data:image/...;base64,..." }.
+// Empty by default -> upload slots active. Baked in when the user provides the zip.
+const MAP_IMAGES = window.MAP_IMAGES || {};
+
+let roster=[
+ {name:"Pasha",role:"anchor"},{name:"Levox",role:"entry"},{name:"L4N4",role:"entry"},
+ {name:"012",role:"flex"},{name:"ROZHA",role:"star"},{name:"RITIK",role:"plant"}
+];
+// per-map: { img, markers:[], strokes:[ {color,size,erase,points:[[x,y],...]} ] }  (x,y normalized 0..1)
+let state={}; MAPS.forEach(m=>state[m]={img:MAP_IMAGES[m]||null,markers:[],strokes:[]});
+let cur=MAPS[0], selId=null, dragName=null, dragRole=null, coneOpacity=0.38, armed=null;
+let drawMode=false, eraseMode=false, penColor=PEN_COLORS[1], penSize=5;
+let drawing=false, curStroke=null;
+
+const $=s=>document.querySelector(s);
+const board=$("#board"), mapimg=$("#mapimg"), nomap=$("#nomap"), stage=$("#stage"),
+      sketch=$("#sketch"), ctx=sketch.getContext("2d"), mLayer=$("#markerLayer");
+
+function buildTabs(){
+  const c=$("#maptabs"); c.innerHTML="";
+  MAPS.forEach(m=>{
+    const b=document.createElement("div");
+    b.className="maptab"+(m===cur?" active":"")+(state[m].img?" has":"");
+    b.textContent=m; b.onclick=()=>{cur=m;selId=null;render();};
+    c.appendChild(b);
+  });
+}
+function buildRoster(){
+  const c=$("#rosterList"); c.innerHTML="";
+  roster.forEach((p,i)=>{
+    const el=document.createElement("div"); el.className="pl"+(armed&&armed.name===p.name?" armed":""); el.draggable=true;
+    el.innerHTML=`<span class="dot" style="background:${ROLES[p.role]}"></span><span>${p.name}</span><small>${p.role}</small>`;
+    el.ondragstart=e=>{dragName=p.name;dragRole=p.role;e.dataTransfer.setData("text",p.name);};
+    // tap-to-place: tapping a roster player "arms" it; next tap on the map drops it
+    el.addEventListener("click",e=>{ if(e.target.tagName==="SMALL")return;
+      armed=(armed&&armed.name===p.name)?null:{name:p.name,role:p.role}; buildRoster();
+      if(armed && document.body.classList.contains("sheet")) closeSheet(); });
+    el.appendChild(mkDel(()=>{roster.splice(i,1);buildRoster();}));
+    c.appendChild(el);
+  });
+}
+function mkDel(fn){const d=document.createElement("small");d.textContent="✕";d.style.cssText="cursor:pointer;color:#888;margin-left:6px";d.onclick=e=>{e.stopPropagation();fn();};return d;}
+function buildSwatches(){
+  const c=$("#swatches"); c.innerHTML="";
+  PEN_COLORS.forEach(col=>{
+    const s=document.createElement("div"); s.className="swatch"+(col===penColor?" sel":"");
+    s.style.background=col; s.title=col; s.onclick=()=>{penColor=col;eraseMode=false;drawMode=true;syncToolbar();buildSwatches();};
+    c.appendChild(s);
+  });
+}
+
+function render(){
+  buildTabs();
+  $("#curMapName").textContent=cur; $("#nomapName").textContent=cur;
+  if(state[cur].img){
+    mapimg.onload=()=>sizeBoard();
+    mapimg.src=state[cur].img; mapimg.style.display="block"; nomap.style.display="none";
+    if(mapimg.complete) sizeBoard();
+  }else{
+    mapimg.style.display="none"; nomap.style.display="flex";
+    board.style.width="720px"; board.style.height="460px";
+    sketch.width=720; sketch.height=460; redrawInk(); drawMarkers();
+  }
+  drawInspector(); syncToolbar();
+}
+function sizeBoard(){
+  const w=mapimg.clientWidth||mapimg.naturalWidth, h=mapimg.clientHeight||mapimg.naturalHeight;
+  board.style.width=w+"px"; board.style.height=h+"px";
+  sketch.width=w; sketch.height=h;
+  redrawInk(); drawMarkers();
+}
+
+// ---------- INK ----------
+function redrawInk(){
+  ctx.clearRect(0,0,sketch.width,sketch.height);
+  const W=sketch.width,H=sketch.height;
+  state[cur].strokes.forEach(st=>{
+    ctx.globalCompositeOperation = st.erase ? "destination-out" : "source-over";
+    ctx.strokeStyle=st.color; ctx.lineWidth=st.size; ctx.lineCap="round"; ctx.lineJoin="round";
+    ctx.beginPath();
+    st.points.forEach((p,i)=>{ const x=p[0]*W,y=p[1]*H; i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.stroke();
+  });
+  ctx.globalCompositeOperation="source-over";
+}
+function ptN(e){ const r=sketch.getBoundingClientRect(); const t=e.touches?e.touches[0]:e;
+  return [ (t.clientX-r.left)/r.width, (t.clientY-r.top)/r.height ]; }
+sketch.addEventListener("mousedown",inkDown); sketch.addEventListener("touchstart",inkDown,{passive:false});
+function inkDown(e){
+  if(!drawMode && !eraseMode) return;
+  drawing=true; curStroke={color:penColor,size:penSize,erase:eraseMode,points:[ptN(e)]};
+  state[cur].strokes.push(curStroke); redrawInk(); e.preventDefault();
+  window.addEventListener("mousemove",inkMove); window.addEventListener("mouseup",inkUp);
+  window.addEventListener("touchmove",inkMove,{passive:false}); window.addEventListener("touchend",inkUp);
+}
+function inkMove(e){ if(!drawing)return; curStroke.points.push(ptN(e)); redrawInk(); e.preventDefault(); }
+function inkUp(){ drawing=false;
+  window.removeEventListener("mousemove",inkMove); window.removeEventListener("mouseup",inkUp);
+  window.removeEventListener("touchmove",inkMove); window.removeEventListener("touchend",inkUp); }
+
+// ---------- MARKERS ----------
+function drawMarkers(){
+  [...mLayer.querySelectorAll(".marker")].forEach(n=>n.remove());
+  const W=board.clientWidth,H=board.clientHeight;
+  state[cur].markers.forEach(mk=>{
+    const el=document.createElement("div");
+    el.className="marker"+(mk.id===selId?" sel":""); el.dataset.id=mk.id;
+    el.style.left=(mk.x*W)+"px"; el.style.top=(mk.y*H)+"px";
+    const r=mk.range, half=mk.fov/2*Math.PI/180, a=mk.angle*Math.PI/180;
+    const x1=Math.cos(a-half)*r,y1=Math.sin(a-half)*r,x2=Math.cos(a+half)*r,y2=Math.sin(a+half)*r;
+    const large=mk.fov>180?1:0, col=ROLES[mk.role];
+    const svg=`<svg width="${r*2}" height="${r*2}" viewBox="${-r} ${-r} ${r*2} ${r*2}" style="position:absolute;left:50%;top:50%;transform:translate(-${r}px,-${r}px);pointer-events:none">
+      <path d="M0,0 L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${col}" fill-opacity="${coneOpacity}" stroke="${col}" stroke-opacity="0.85" stroke-width="1.5"/>
+      <line x1="0" y1="0" x2="${Math.cos(a)*r}" y2="${Math.sin(a)*r}" stroke="${col}" stroke-width="2" stroke-dasharray="4 3"/></svg>`;
+    const lvl=mk.level!=="none"?`<div class="lvl">${mk.level==="up"?"▲ UP":"▼ DN"}</div>`:"";
+    const hx=Math.cos(a)*42,hy=Math.sin(a)*42;
+    el.innerHTML=svg+`<div class="pin" style="background:${col}">${mk.name.slice(0,3).toUpperCase()}</div>`+
+      `<div class="plabel" style="border-left:3px solid ${col}">${mk.name}</div>`+lvl+
+      `<div class="handle roth" style="left:calc(50% + ${hx}px);top:calc(50% + ${hy}px);transform:translate(-50%,-50%)"></div>`;
+    mLayer.appendChild(el); wireMarker(el,mk);
+  });
+  // when drawing, let ink canvas receive events; otherwise markers are interactive
+  sketch.style.pointerEvents=(drawMode||eraseMode)?"auto":"none";
+  mLayer.style.pointerEvents=(drawMode||eraseMode)?"none":"none"; // layer transparent; children re-enable
+}
+function wireMarker(el,mk){
+  const pin=el.querySelector(".pin"),handle=el.querySelector(".roth"),label=el.querySelector(".plabel");
+  let mode=null,sx,sy,ox,oy;
+  const down=e=>{
+    if(drawMode||eraseMode) return;     // don't grab while drawing
+    selId=mk.id; drawInspector(); markSel();
+    mode=e.target.classList.contains("roth")?"rot":"move";
+    const p=pt(e); sx=p.x; sy=p.y; const W=board.clientWidth,H=board.clientHeight; ox=mk.x*W; oy=mk.y*H;
+    e.preventDefault(); e.stopPropagation();
+    window.addEventListener("mousemove",move); window.addEventListener("mouseup",up);
+    window.addEventListener("touchmove",move,{passive:false}); window.addEventListener("touchend",up);
+  };
+  const move=e=>{ const p=pt(e),W=board.clientWidth,H=board.clientHeight;
+    if(mode==="move"){ mk.x=Math.min(1,Math.max(0,(ox+(p.x-sx))/W)); mk.y=Math.min(1,Math.max(0,(oy+(p.y-sy))/H)); }
+    else{ const br=board.getBoundingClientRect(); mk.angle=Math.atan2(p.y-(br.top+mk.y*H),p.x-(br.left+mk.x*W))*180/Math.PI; }
+    drawMarkers(); markSel(); e.preventDefault(); };
+  const up=()=>{mode=null;window.removeEventListener("mousemove",move);window.removeEventListener("mouseup",up);window.removeEventListener("touchmove",move);window.removeEventListener("touchend",up);};
+  [pin,handle,label].forEach(t=>{t.addEventListener("mousedown",down);t.addEventListener("touchstart",down,{passive:false});});
+}
+function markSel(){[...mLayer.querySelectorAll(".marker")].forEach(n=>n.classList.toggle("sel",n.dataset.id===selId));}
+function pt(e){const t=e.touches?e.touches[0]:e;return{x:t.clientX,y:t.clientY};}
+
+// place from roster
+stage.addEventListener("dragover",e=>e.preventDefault());
+stage.addEventListener("drop",e=>{
+  e.preventDefault(); if(!dragName||!state[cur].img)return;
+  const br=board.getBoundingClientRect();
+  const x=(e.clientX-br.left)/board.clientWidth, y=(e.clientY-br.top)/board.clientHeight;
+  if(x<0||x>1||y<0||y>1)return; addMarker(dragName,dragRole,x,y); dragName=null;
+});
+// TAP-TO-PLACE: if a roster player is "armed", tapping the board drops it there
+function boardTap(e){
+  if(!armed || !state[cur].img) return;
+  if(drawMode||eraseMode) return;              // don't place while drawing
+  if(e.target.closest(".marker")) return;      // tapped an existing marker, ignore
+  const br=board.getBoundingClientRect();
+  const t=e.touches?e.touches[0]:e;
+  const x=(t.clientX-br.left)/board.clientWidth, y=(t.clientY-br.top)/board.clientHeight;
+  if(x<0||x>1||y<0||y>1) return;
+  addMarker(armed.name,armed.role,x,y); armed=null; buildRoster();
+}
+board.addEventListener("click",boardTap);
+function addMarker(name,role,x,y){
+  const mk={id:"m"+Date.now()+Math.random().toString(36).slice(2,5),name,role,x,y,angle:-90,fov:60,range:120,level:"none"};
+  state[cur].markers.push(mk); selId=mk.id; drawMarkers(); drawInspector(); saveLocal();
+}
+
+// inspector
+function drawInspector(){
+  const ins=$("#inspector"); const mk=state[cur].markers.find(m=>m.id===selId);
+  if(!mk){ins.className="insp empty";ins.textContent="Click a placed marker to edit its angle, view width, range, and level.";return;}
+  ins.className="insp";
+  ins.innerHTML=`<div style="font-weight:700;margin-bottom:6px;color:${ROLES[mk.role]}">${mk.name} <small style="color:var(--muted)">(${mk.role})</small></div>
+    <div class="row"><label>Facing</label><input type="range" min="-180" max="180" value="${Math.round(mk.angle)}" id="iAngle"><span class="val" id="vAngle">${Math.round(mk.angle)}°</span></div>
+    <div class="row"><label>View width</label><input type="range" min="10" max="300" value="${mk.fov}" id="iFov"><span class="val" id="vFov">${mk.fov}°</span></div>
+    <div class="row"><label>Range</label><input type="range" min="40" max="340" value="${mk.range}" id="iRange"><span class="val" id="vRange">${mk.range}</span></div>
+    <div class="row"><label>Level</label><div class="minibtns">
+      <button class="btn" data-lvl="none">None</button><button class="btn" data-lvl="up">▲ Up</button><button class="btn" data-lvl="down">▼ Down</button></div></div>
+    <div class="minibtns" style="margin-top:8px">
+      <button class="btn" id="iRole">Change role</button><button class="btn" id="iDup">Duplicate</button>
+      <button class="btn" id="iDel" style="border-color:#a33">Delete</button></div>`;
+  const bind=(id,key,suf)=>{const el=$("#"+id);el.oninput=()=>{mk[key]=parseInt(el.value);$("#v"+id.slice(1)).textContent=el.value+(suf||"");drawMarkers();markSel();};};
+  bind("iAngle","angle","°");bind("iFov","fov","°");bind("iRange","range","");
+  ins.querySelectorAll("[data-lvl]").forEach(b=>b.onclick=()=>{mk.level=b.dataset.lvl;drawMarkers();markSel();});
+  $("#iDel").onclick=()=>{state[cur].markers=state[cur].markers.filter(m=>m.id!==mk.id);selId=null;drawMarkers();drawInspector();};
+  $("#iDup").onclick=()=>{const c={...mk,id:"m"+Date.now()+Math.random().toString(36).slice(2,5),x:Math.min(1,mk.x+.04),y:Math.min(1,mk.y+.04)};state[cur].markers.push(c);selId=c.id;drawMarkers();drawInspector();};
+  $("#iRole").onclick=()=>{const o=["entry","anchor","flex","star","plant"];mk.role=o[(o.indexOf(mk.role)+1)%o.length];drawMarkers();drawInspector();markSel();};
+}
+
+// toolbar
+function syncToolbar(){
+  $("#drawToggle").classList.toggle("on",drawMode&&!eraseMode);
+  $("#eraseToggle").classList.toggle("on",eraseMode);
+  sketch.style.pointerEvents=(drawMode||eraseMode)?"auto":"none";
+  sketch.style.cursor=(drawMode||eraseMode)?"crosshair":"default";
+}
+$("#drawToggle").onclick=()=>{drawMode=!drawMode;if(drawMode)eraseMode=false;syncToolbar();drawMarkers();};
+$("#eraseToggle").onclick=()=>{eraseMode=!eraseMode;if(eraseMode)drawMode=true;syncToolbar();drawMarkers();};
+$("#penSize").oninput=e=>penSize=parseInt(e.target.value);
+$("#undoBtn").onclick=()=>{state[cur].strokes.pop();redrawInk();};
+$("#clearDraw").onclick=()=>{if(confirm("Clear all ink on "+cur+"?")){state[cur].strokes=[];redrawInk();}};
+$("#clearMarkers").onclick=()=>{if(confirm("Remove all players on "+cur+"?")){state[cur].markers=[];selId=null;drawMarkers();drawInspector();}};
+$("#coneOpacity").oninput=e=>{coneOpacity=e.target.value/100;drawMarkers();};
+$("#printBtn").onclick=()=>window.print();
+$("#uploadBtn").onclick=()=>$("#fileInput").click();
+$("#fileInput").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{state[cur].img=rd.result;render();};rd.readAsDataURL(f);e.target.value="";};
+$("#addPlayer").onclick=()=>{const n=$("#newName").value.trim();if(!n)return;roster.push({name:n,role:$("#newRole").value});$("#newName").value="";buildRoster();};
+$("#newName").addEventListener("keydown",e=>{if(e.key==="Enter")$("#addPlayer").click();});
+$("#saveBtn").onclick=()=>{const blob=new Blob([JSON.stringify({roster,state})],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="snd_stratboard_save.json";a.click();};
+$("#loadBtn").onclick=()=>$("#loadInput").click();
+$("#loadInput").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);if(d.roster)roster=d.roster;if(d.state){MAPS.forEach(m=>{if(d.state[m])state[m]=Object.assign({img:null,markers:[],strokes:[]},d.state[m]);});}buildRoster();render();}catch(err){alert("Could not load file.");}};rd.readAsText(f);e.target.value="";};
+window.addEventListener("resize",()=>{ if(state[cur].img) sizeBoard(); });
+
+
+// ---- mobile sheet (squad menu) ----
+function openSheet(){document.body.classList.add("sheet");}
+function closeSheet(){document.body.classList.remove("sheet");}
+$("#menuToggle").onclick=()=>{document.body.classList.contains("sheet")?closeSheet():openSheet();};
+$("#sheetBackdrop").onclick=closeSheet;
+
+// ---- AUTO-SAVE to this device (localStorage). File Save/Load still works for moving between devices. ----
+const LS_KEY="snd_stratboard_v1";
+function saveLocal(){
+  try{
+    const slim={}; MAPS.forEach(m=>slim[m]={markers:state[m].markers,strokes:state[m].strokes,
+      custom: state[m].img && !(MAP_IMAGES[m]&&state[m].img===MAP_IMAGES[m]) ? state[m].img : null});
+    localStorage.setItem(LS_KEY, JSON.stringify({roster,slim}));
+  }catch(e){}
+}
+function loadLocal(){
+  try{
+    const raw=localStorage.getItem(LS_KEY); if(!raw)return;
+    const d=JSON.parse(raw);
+    if(d.roster&&d.roster.length) roster=d.roster;
+    if(d.slim){ MAPS.forEach(m=>{ if(d.slim[m]){
+      state[m].markers=d.slim[m].markers||[]; state[m].strokes=d.slim[m].strokes||[];
+      if(d.slim[m].custom) state[m].img=d.slim[m].custom;
+    }});}
+  }catch(e){}
+}
+let _sv; function queueSave(){clearTimeout(_sv);_sv=setTimeout(saveLocal,400);}
+["mouseup","touchend"].forEach(ev=>window.addEventListener(ev,queueSave));
+
+loadLocal();
+buildTabs();buildRoster();buildSwatches();render();saveLocal();
+</script>
+</body>
+</html>
